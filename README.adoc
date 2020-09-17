@@ -1,0 +1,56 @@
+= dap
+Michael Gale https://github.com/mgale
+:idprefix:
+:name: dap
+:toc: macro
+:toclevels: 4
+
+Diff and Patch tool inspired by https://meldmerge.org/ and https://github.com/google/diff-match-patch
+
+toc::[]
+
+[[quick_overview]]
+== Quick overview
+
+. Call it:
++
+.Show help
+----
+$ ./dap --help
+
+
+----
++
+.Show errors
+----
+$ ./dap
+ERROR: Missing required option 'greet'!
+
+SYNOPSIS:
+    dap --greet <int> [--debug] [--help|-h|-?] [--list <key=value>...]...
+----
++
+.Show errors
+----
+$ ./dap -g
+ERROR: Missing argument for option 'greet'!
+
+SYNOPSIS:
+    dap --greet <int> [--debug] [--help|-h|-?] [--list <key=value>...]...
+----
+
+
+List of files from B
+List of files from A
+
+- I could get the list from B only
+- Iterate on list from A ?
+- Less memory?
+- All checks need to be done in A file loop
+
+[filename][fileinfoA]
+[filename][fileinfoB]
+
+
+- determine if a Diff Exists
+- show diff 
