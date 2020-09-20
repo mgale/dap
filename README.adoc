@@ -5,52 +5,84 @@ Michael Gale https://github.com/mgale
 :toc: macro
 :toclevels: 4
 
-Diff and Patch tool inspired by https://meldmerge.org/ and https://github.com/google/diff-match-patch
+A Diff and Patch tool inspired by https://meldmerge.org/ and https://github.com/google/diff-match-patch
+
 
 toc::[]
 
 [[quick_overview]]
 == Quick overview
 
+dap requires 2 command line arguments, the first argument is the file or directory that should be patched, the location you want to push the changes into. The 2nd argument is the file or directory that you want to pull from.
+
+The --dry-run option performs all the steps and confirmations with the exception of writing to the file system.
+
+
 . Call it:
 +
 .Show help
 ----
 $ ./dap --help
+SYNOPSIS:
+    dap [--dry-run] [--help|-h|-?] [--report-only|-q] [--version|-V] [<args>]
+
+OPTIONS:
+    --dry-run           Dry-run skips updating the underlying file contents (default: false)
+
+    --help|-h|-?        (default: false)
+
+    --report-only|-q    Report only files that differ (default: false)
+
+    --version|-V        (default: false)
 
 
 ----
 +
-.Show errors
+.Report changes only
 ----
-$ ./dap
-ERROR: Missing required option 'greet'!
-
-SYNOPSIS:
-    dap --greet <int> [--debug] [--help|-h|-?] [--list <key=value>...]...
+$ ./dap --report-only tests/smalldiff/t1.txt tests/smalldiff/t2.txt
+Files tests/smalldiff/t1.txt and tests/smalldiff/t2.txt differ
 ----
 +
-.Show errors
+.Diff and patch a file
 ----
-$ ./dap -g
-ERROR: Missing argument for option 'greet'!
+$ ./dap --dry-run tests/smalldiff/t1.txt tests/smalldiff/t2.txt
+#####################################################
+#DiffOutPut: Appling diff to: tests/smalldiff/t1.txt from: tests/smalldiff/t2.txt
+---
+-  nodes_group_count  = 1
+-  node_replica_count = 1
++  nodes_group_count  = 2
++  node_replica_count = 2
+---
+-  node_type          = "cache.t3.small"
++  node_type          = "cache.m5.large"
+---
+-  engine_version     = "5.0.6"
+-  at_rest_encryption = true
++  engine_version     = "5.0.8"
++  at_rest_encryption = false
+---
+-  visibility_timeout_seconds  = 600
++  visibility_timeout_seconds  = 1200
+---
 
-SYNOPSIS:
-    dap --greet <int> [--debug] [--help|-h|-?] [--list <key=value>...]...
+#####################################################
+Review patches and apply them? (y/n):
+----
++
+.Diff and patch a directory
+----
+$ ./dap tests/smalldiff tests/smalldiff
+...
 ----
 
-
-List of files from B
-List of files from A
-
-- I could get the list from B only
-- Iterate on list from A ?
-- Less memory?
-- All checks need to be done in A file loop
-
-[filename][fileinfoA]
-[filename][fileinfoB]
-
-
-- determine if a Diff Exists
-- show diff 
+Here is a very large directory example:
+----
+$ ./dap --report-only tests/samelarge/hostA tests/samelarge/hostB/
+Loading files from  tests/samelarge/hostA
+Done
+Loading files from  tests/samelarge/hostB/
+Done
+Scanned:        Files: 222220        Directories: 22222        Diffs: 0        Patched: 0        Skipped: 0        Errors: 0         Runtime: 4.554211126s
+----
