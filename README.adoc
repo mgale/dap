@@ -82,7 +82,50 @@ $ ./dap --dry-run tests/smalldiff/t1.txt tests/smalldiff/t2.txt
 ---
 
 #####################################################
-Review patches and apply them? (y/n):
+Review patches and apply them? (y/n):y
+
+#####################################################
+#PatchOutPut: Appling patch to: tests/smalldiff/t1.txt
+@@ -32,58 +32,58 @@
+-  nodes_group_count  = 1
+-  node_replica_count = 1
++  nodes_group_count  = 2
++  node_replica_count = 2
+
+#####################################################
+Apply patch? (y/n):n
+#####################################################
+#PatchOutPut: Appling patch to: tests/smalldiff/t1.txt
+@@ -332,48 +332,48 @@
+-  node_type          = "cache.t3.small"
++  node_type          = "cache.m5.large"
+
+#####################################################
+Apply patch? (y/n):n
+#####################################################
+#PatchOutPut: Appling patch to: tests/smalldiff/t1.txt
+@@ -584,67 +584,68 @@
+-  engine_version     = "5.0.6"
+-  at_rest_encryption = true
++  engine_version     = "5.0.8"
++  at_rest_encryption = false
+
+#####################################################
+Apply patch? (y/n):y
+#####################################################
+#PatchOutPut: Appling patch to: tests/smalldiff/t1.txt
+@@ -1179,44 +1179,45 @@
+-  visibility_timeout_seconds  = 600
++  visibility_timeout_seconds  = 1200
+
+#####################################################
+Apply patch? (y/n):y
+
+Diffs: 13, Patches: 2, Applied: 2, Failed: 0
+Dry-run enabled, skipping file writes: tests/smalldiff/t1.txt
+Scanned:        Files: 2        Directories: 0        Diffs: 1        Patched: 2        Skipped: 0        Errors: 0         Runtime: 7.156947108s
+
+
 ----
 +
 .Diff and patch a directory
