@@ -5,10 +5,24 @@ Michael Gale https://github.com/mgale
 :toc: macro
 :toclevels: 4
 
-A Diff and Patch tool inspired by https://meldmerge.org/ and https://github.com/google/diff-match-patch
-
+Diff and Patch (dap) is a tool inspired by https://meldmerge.org/ and https://github.com/google/diff-match-patch
 
 toc::[]
+
+[[purpose]]
+== Purpose ==
+
+dap was created while working with mono repos and changes need to be promoted between file system folders instead of a branch or tag. It is designed to allow the user to pull in specific change sets between the files instead of a full copy paste or rsync still operation.
+
+If a difference between files exist a diff is displayed and the user is asked if they want to review and apply patches. If the user says no nothing happens and the operation is repeated for the next file. If the user says yes then the differences are broken up into chunks, a.k.a patches. Then each patch is reviewed and can either be applied or skipped.
+
+=== Workflow ===
+
+. Determine if the files differ
+. Present a diff to the user and determine if they want to patch the file
+. Present a list of patches or chunks of diff and let the user decided which ones to apply
+. Save the changes
+
 
 [[quick_overview]]
 == Quick overview
