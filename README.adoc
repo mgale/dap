@@ -32,7 +32,7 @@ dap requires 2 command line arguments, the first argument is the file or directo
 The --dry-run option performs all the steps and confirmations with the exception of writing to the file system.
 
 
-. Call it:
+. Using dap:
 +
 .Show help
 ----
