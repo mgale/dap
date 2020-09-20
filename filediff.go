@@ -10,19 +10,25 @@ import (
 )
 
 // compareFiles is the entry point for file comparison, diff reviews and apply patches
-func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun bool) error {
+// TBD: Currently the match result is returned, not sure if we need this or not.
+func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun bool, reportOnly bool) (bool, error) {
 	cmp := equalfile.New(nil, equalfile.Options{}) // compare using single mode
 	equal, err := cmp.CompareFile(fileAExt.osPathname, fileBExt.osPathname)
 
 	if err != nil {
 		logError("Comparing files failed", err)
-		return err
+		return false, err
 	}
 
-	runtimeStats.FilesScanned++
+	if (reportOnly == true) && (equal == false) {
+		runtimeStats.FilesWDiff++
+		fmt.Printf("Files %s and %s differ\n", fileAExt.osPathname, fileBExt.osPathname)
+		return equal, nil
+	}
+
 	if equal == true {
 		// Files are the same
-		return nil
+		return equal, nil
 	}
 
 	runtimeStats.FilesWDiff++
@@ -31,7 +37,7 @@ func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun b
 
 	resultDiffInfo, err := createDiffs(fileAExt, fileBExt)
 	if err != nil {
-		return err
+		return equal, err
 	}
 
 	runtimeStats.PatchesApplied += resultDiffInfo.patchesApplied
@@ -39,25 +45,21 @@ func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun b
 	runtimeStats.PatchesSkipped += (resultDiffInfo.patchesTotal - resultDiffInfo.patchesApplied)
 
 	if resultDiffInfo.patchesFailed > 0 {
-		return fmt.Errorf("Errors occurred while patching file, skip file writes: %s", fileAExt.osPathname)
+		return equal, fmt.Errorf("Errors occurred while patching file, skip file writes: %s", fileAExt.osPathname)
 	}
 
 	if dryRun == true {
-		fmt.Printf("Dry-run enabled, skipping file writes\n")
-		fmt.Println("TESTING1 2 3")
-		logError("Test 1 2 3", nil)
-		return nil
+		fmt.Printf("Dry-run enabled, skipping file writes: %s\n", fileAExt.osPathname)
+		return equal, nil
 	}
-
-	fmt.Printf("Dry-run status: %v\n", dryRun)
 
 	// dryrun is off and we have patched the file
 	if (dryRun == false) && (resultDiffInfo.patched == true) {
-		err := ioutil.WriteFile(fileAExt.osPathname, []byte(fileAExt.fileContent), 0644)
-		return err
+		err := ioutil.WriteFile(fileAExt.osPathname, resultDiffInfo.newContent, 0644)
+		return equal, err
 	}
 
-	return nil
+	return equal, nil
 }
 
 func loadFileContent(fileX *fileInfoExtended) error {
@@ -97,7 +99,7 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 		return fileDiffInfo, nil
 	}
 
-	fileAExtUpdated, patchesTotal, patchesFailed, err := handlePatches(dmp, diffs, fileAExt)
+	fileContent, patchesTotal, patchesFailed, err := handlePatches(dmp, diffs, fileAExt)
 	patchesApplied := patchesTotal - patchesFailed
 
 	fileDiffInfo.patchesTotal = patchesTotal
@@ -105,8 +107,8 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 	fileDiffInfo.patchesFailed = patchesFailed
 
 	if patchesApplied > 0 {
-		fileAExt = fileAExtUpdated
 		fileDiffInfo.patched = true
+		fileDiffInfo.newContent = fileContent
 	}
 
 	fmt.Printf("\nDiffs: %v, Patches: %v, Applied: %v, Failed: %v\n", len(diffs), patchesTotal, patchesApplied, patchesFailed)
@@ -147,14 +149,14 @@ func reviewPatchDetailed(patchString string, fileAName string, autoPatch bool) (
 	return response, nil
 }
 
-func handlePatches(dmp *diffmatchpatch.DiffMatchPatch, diffs []diffmatchpatch.Diff, fileAExt fileInfoExtended) (fileInfoExtended, int, int, error) {
+func handlePatches(dmp *diffmatchpatch.DiffMatchPatch, diffs []diffmatchpatch.Diff, fileAExt fileInfoExtended) ([]byte, int, int, error) {
 
 	myPatches := dmp.PatchMake(diffs)
 	applyPatchList, err := stagePatches(myPatches, fileAExt.osPathname, fileAExt.autoPatch)
 
 	if err != nil {
 		fmt.Println(err)
-		return fileAExt, 0, 0, err
+		return nil, 0, 0, err
 	}
 
 	fileAtextnew, patchResults := dmp.PatchApply(applyPatchList, fileAExt.fileContentString)
@@ -168,10 +170,9 @@ func handlePatches(dmp *diffmatchpatch.DiffMatchPatch, diffs []diffmatchpatch.Di
 		}
 	}
 
-	fileAExt.fileContentString = fileAtextnew
-	fileAExt.fileContent = []byte(fileAtextnew)
+	fileContent := []byte(fileAtextnew)
 
-	return fileAExt, patchesTotal, patchesFailed, err
+	return fileContent, patchesTotal, patchesFailed, err
 }
 
 // Cycles through the patches and returns the patches the User has flagged to be applied.

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -41,6 +42,7 @@ type fileDiffInfo struct {
 	patchesApplied int
 	patchesFailed  int
 	patched        bool
+	newContent     []byte
 }
 
 var runtimeStats trackedStats
@@ -59,19 +61,9 @@ func logError(myMsg string, err error) {
 	}
 }
 
-// func checkDiffPath(pathName string) error {
-// 	_, err := os.Stat(pathName)
-// 	if os.IsNotExist(err) {
-// 		logError("File does not exits", err)
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
 // showFinishedResults takes in an bufio writer like
 // os.Stdout for example and writes the results.
-func showFinishedResults(output *bufio.Writer) error {
+func showFinishedResults(output *bufio.Writer, runtimeStats trackedStats) error {
 	runtimeStats.Duration = time.Since(runtimeStats.Starttime).String()
 
 	w := tabwriter.NewWriter(output, 8, 8, 8, ' ', 0)
@@ -90,15 +82,32 @@ func getAllFiles(diffPath string) []fileInfoExtended {
 	foundFiles := []fileInfoExtended{}
 	fmt.Println("Loading files from ", diffPath)
 	godirwalk.Walk(diffPath, &godirwalk.Options{
-		Unsorted: true,
+		Unsorted: false,
 		Callback: func(osPathname string, de *godirwalk.Dirent) error {
-			fmt.Print("\033[u\033[K", osPathname)
-			fileinfo, _ := os.Stat(osPathname)
-			fInfoExt := fileInfoExtended{
-				osPathname: osPathname,
-				fileInfo:   fileinfo,
+
+			if strings.Contains(osPathname, ".git") {
+				return godirwalk.SkipThis
 			}
-			foundFiles = append(foundFiles, fInfoExt)
+
+			if strings.Contains(osPathname, ".terraform") {
+				return godirwalk.SkipThis
+			}
+
+			if de.IsDir() {
+				runtimeStats.DirSearched++
+			}
+
+			if de.IsRegular() {
+				fmt.Print("\033[u\033[K", osPathname)
+				fileinfo, _ := os.Stat(osPathname)
+				fInfoExt := fileInfoExtended{
+					osPathname: osPathname,
+					fileInfo:   fileinfo,
+				}
+				foundFiles = append(foundFiles, fInfoExt)
+				runtimeStats.FilesScanned++
+
+			}
 			return nil
 		},
 		ErrorCallback: func(osPathname string, err error) godirwalk.ErrorAction {
@@ -110,7 +119,7 @@ func getAllFiles(diffPath string) []fileInfoExtended {
 	return foundFiles
 }
 
-func mainWork(opt *getoptions.GetOpt, diffContext int, pathAExt fileInfoExtended, pathBExt fileInfoExtended) int {
+func mainWork(opt *getoptions.GetOpt, pathAExt fileInfoExtended, pathBExt fileInfoExtended) int {
 
 	runtimeStats.Starttime = time.Now()
 	bufferedOutput := bufio.NewWriter(os.Stdout)
@@ -118,36 +127,50 @@ func mainWork(opt *getoptions.GetOpt, diffContext int, pathAExt fileInfoExtended
 
 	if pathAExt.fileInfo.IsDir() && pathBExt.fileInfo.IsDir() {
 		// We are comparing directories
+		pathAFiles := getAllFiles(pathAExt.osPathname)
+		pathBFiles := getAllFiles(pathBExt.osPathname)
+
+		fileMapList := []string{}
+		fileMap := make(map[string][]fileInfoExtended)
+		for _, fileExtInfo := range pathAFiles {
+			fileKey := strings.TrimPrefix(fileExtInfo.osPathname, pathAExt.osPathname)
+			fileMap[fileKey] = []fileInfoExtended{fileExtInfo}
+			fileMapList = append(fileMapList, fileKey)
+		}
+
+		for _, fileExtInfo := range pathBFiles {
+			fileKey := strings.TrimPrefix(fileExtInfo.osPathname, pathBExt.osPathname)
+			if _, ok := fileMap[fileKey]; ok {
+				mylist := fileMap[fileKey]
+				mylist = append(mylist, fileExtInfo)
+				fileMap[fileKey] = mylist
+			} else {
+				fileMap[fileKey] = []fileInfoExtended{fileExtInfo}
+			}
+		}
+
+		for _, fileName := range fileMapList {
+			if len(fileMap[fileName]) == 2 {
+				// Files exist in both dirs
+				_, err := compareFiles(fileMap[fileName][0], fileMap[fileName][1], opt.Called("dry-run"), opt.Called("report-only"))
+				if err != nil {
+					return 1
+				}
+			}
+		}
+
 	} else if pathAExt.fileInfo.IsDir() == false && pathBExt.fileInfo.IsDir() == false {
 		// We are comparing two files against each other
-		err := compareFiles(pathAExt, pathBExt, opt.Called("dry-run"))
+		runtimeStats.FilesScanned = 2
+		_, err := compareFiles(pathAExt, pathBExt, opt.Called("dry-run"), opt.Called("report-only"))
 		if err != nil {
 			return 1
 		}
-	} else {
-		// We have 1 file and 1 dir, append the basename of the file onto the directory
-		fmt.Println("Currently not supported")
 	}
 
-	//diffInfo := []fileDiffInfo{}
-	// if diffDirCount > 0 {
-	// 	for _, myfInfoExt := range getAllFiles(diffPaths[0]) {
-	// 		fDiffInfo := fileDiffInfo{fileAInfo: myfInfoExt}
-	// 		diffInfo[myfInfoExt.osPathname] = fDiffInfo
-	// 	}
-	// 	for _, myfInfoExt := range getAllFiles(diffPaths[1]) {
-	// 		fDiffInfo := fileDiffInfo{fileAInfo: myfInfoExt}
-	// 		diffInfo[myfInfoExt.osPathname] = fDiffInfo
-	// 	}
-
-	// }
-
-	// All work completed, output runtime stats and exit
-	if opt.Called("brief") == false {
-		err := showFinishedResults(bufferedOutput)
-		if err != nil {
-			return 1
-		}
+	err := showFinishedResults(bufferedOutput, runtimeStats)
+	if err != nil {
+		return 1
 	}
 	return 0
 }
@@ -157,12 +180,12 @@ func main() {
 	opt.Bool("help", false, opt.Alias("h", "?"))
 	opt.Bool("version", false, opt.Alias("V"))
 	opt.Bool("dry-run", false, opt.Description("Dry-run skips updating the underlying file contents"))
-	opt.Bool("brief", false, opt.Alias("q"), opt.Description("Report only files that differ"))
-	opt.Bool("recursive", true, opt.Description("Recursively look for files if inputs are directories"))
+	opt.Bool("report-only", false, opt.Alias("q"), opt.Description("Report only files that differ"))
+	//opt.Bool("recursive", true, opt.Description("Recursively look for files if inputs are directories"))
 	// opt.Bool("follow-sym-links", false, opt.Description("Follow symlinks"))
 	// opt.Bool("include-hidden-files", false, opt.Description("Include hidden files and directories"))
 	// opt.Bool("report-identical-files", false, opt.Alias("s"), opt.Description("Report only files that are the same"))
-	diffContext := opt.IntOptional("context", 3)
+	//diffContext := opt.IntOptional("context", 3)
 
 	remaining, err := opt.Parse(os.Args[1:])
 	if opt.Called("help") {
@@ -200,6 +223,6 @@ func main() {
 	pathAExtened := fileInfoExtended{osPathname: remaining[0], fileInfo: pathA}
 	pathBExtened := fileInfoExtended{osPathname: remaining[1], fileInfo: pathB}
 
-	os.Exit(mainWork(opt, *diffContext, pathAExtened, pathBExtened))
+	os.Exit(mainWork(opt, pathAExtened, pathBExtened))
 
 }

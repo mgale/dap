@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -154,60 +153,10 @@ func Test_loadFileContent(t *testing.T) {
 	}
 }
 
-func Test_compareFiles(t *testing.T) {
-
-	fileA := loadTestFile("tests/same/a/t1.txt")
-	fileB := loadTestFile("tests/same/b/t1.txt")
-	fileC := loadTestFile("tests/smalldiff/t2.txt")
-	fileFake := loadTestFile("tests/fakefile")
-
-	fileSource := loadTestFile("tests/smalldiff/t2.txt")
-
-	tmpfile, err := ioutil.TempFile("", "example")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	data, _ := ioutil.ReadFile("tests/smalldiff/t1.txt")
-	err = ioutil.WriteFile(tmpfile.Name(), data, 0644)
-
-	filePatch := loadTestFile(tmpfile.Name())
-	filePatch.autoPatch = true
-	defer os.Remove(tmpfile.Name()) // clean up
-
-	type args struct {
-		fileAExt fileInfoExtended
-		fileBExt fileInfoExtended
-		dryRun   bool
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{"FilesMatch", args{fileAExt: fileA, fileBExt: fileB, dryRun: true}, false},
-		{"FilesDifer", args{fileAExt: fileA, fileBExt: fileC, dryRun: true}, false},
-		{"FilesSame", args{fileAExt: fileA, fileBExt: fileA, dryRun: true}, false},
-		{"FakeFile", args{fileAExt: fileA, fileBExt: fileFake, dryRun: true}, true},
-		{"RealPatch", args{fileAExt: filePatch, fileBExt: fileSource, dryRun: false}, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := compareFiles(tt.args.fileAExt, tt.args.fileBExt, tt.args.dryRun); (err != nil) != tt.wantErr {
-				t.Errorf("compareFiles() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-
-	fmt.Printf("Result: %+v", runtimeStats)
-}
-
 func Test_createDiffs(t *testing.T) {
 
 	fileA := loadTestFile("tests/same/a/t1.txt")
 	loadFileContent(&fileA)
-	// fileB := loadTestFile("tests/same/b/t1.txt")
-	// loadFileContent(&fileB)
 	fileC := loadTestFile("tests/smalldiff/t2.txt")
 	loadFileContent(&fileC)
 
@@ -240,6 +189,7 @@ func Test_createDiffs(t *testing.T) {
 	withChangesDiff.patchesTotal = 4
 	withChangesDiff.patchesApplied = 4
 	withChangesDiff.patched = true
+	withChangesDiff.newContent = fileSource.fileContent
 
 	type args struct {
 		fileAExt fileInfoExtended
@@ -263,6 +213,72 @@ func Test_createDiffs(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("createDiffs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_compareFiles(t *testing.T) {
+
+	fileA := loadTestFile("tests/same/a/t1.txt")
+	fileB := loadTestFile("tests/same/b/t1.txt")
+	fileC := loadTestFile("tests/smalldiff/t2.txt")
+	fileFake := loadTestFile("tests/fakefile")
+
+	fileSource := loadTestFile("tests/smalldiff/t2.txt")
+
+	tmpfile, err := ioutil.TempFile("", "example")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	data, _ := ioutil.ReadFile("tests/smalldiff/t1.txt")
+	err = ioutil.WriteFile(tmpfile.Name(), data, 0644)
+
+	filePatch := loadTestFile(tmpfile.Name())
+	filePatch.autoPatch = true
+
+	tmpfile2, err := ioutil.TempFile("", "example")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	data, _ = ioutil.ReadFile("tests/smalldiff/t1.txt")
+	err = ioutil.WriteFile(tmpfile2.Name(), data, 0644)
+
+	filePatch2 := loadTestFile(tmpfile2.Name())
+	filePatch2.autoPatch = true
+	defer os.Remove(tmpfile2.Name()) // clean up
+
+	type args struct {
+		fileAExt   fileInfoExtended
+		fileBExt   fileInfoExtended
+		dryRun     bool
+		reportOnly bool
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{"FilesMatch", args{fileAExt: fileA, fileBExt: fileB, dryRun: true, reportOnly: false}, true, false},
+		{"FilesDifer", args{fileAExt: fileA, fileBExt: fileC, dryRun: true, reportOnly: false}, false, false},
+		{"FilesSame", args{fileAExt: fileA, fileBExt: fileA, dryRun: true, reportOnly: false}, true, false},
+		{"FakeFile", args{fileAExt: fileA, fileBExt: fileFake, dryRun: true, reportOnly: false}, false, true},
+		{"RealPatch", args{fileAExt: filePatch, fileBExt: fileSource, dryRun: false, reportOnly: false}, false, false},
+		{"PatchNewFile", args{fileAExt: fileFake, fileBExt: fileA, dryRun: true, reportOnly: false}, false, true},
+		{"RealPatchReport", args{fileAExt: filePatch2, fileBExt: fileSource, dryRun: false, reportOnly: true}, false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := compareFiles(tt.args.fileAExt, tt.args.fileBExt, tt.args.dryRun, tt.args.reportOnly)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("compareFiles() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("compareFiles() = %v, want %v", got, tt.want)
 			}
 		})
 	}
