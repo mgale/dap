@@ -30,6 +30,9 @@ jobs:
 
       - name: Upload
         uses: actions/upload-artifact@v2
+        with:
+          name: dap
+          path: dap
 
   # Support last two releases of Go
   libs:
