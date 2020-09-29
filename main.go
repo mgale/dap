@@ -16,6 +16,9 @@ import (
 const semVersion = "0.0.1"
 
 var diffContext int
+var ignorePaths []string
+var includeHidden bool = false
+var followSymLinks bool = false
 
 type trackedStats struct {
 	FilesScanned   int
@@ -85,12 +88,22 @@ func getAllFiles(diffPath string) []fileInfoExtended {
 		Unsorted: false,
 		Callback: func(osPathname string, de *godirwalk.Dirent) error {
 
-			if strings.Contains(osPathname, ".git") {
-				return godirwalk.SkipThis
+			if strings.Contains(osPathname, "/.") {
+				if includeHidden == false {
+					return godirwalk.SkipThis
+				}
 			}
 
-			if strings.Contains(osPathname, ".terraform") {
-				return godirwalk.SkipThis
+			if de.IsSymlink() {
+				if followSymLinks == false {
+					return godirwalk.SkipThis
+				}
+			}
+
+			for _, ignorePath := range ignorePaths {
+				if strings.Contains(osPathname, ignorePath) {
+					return godirwalk.SkipThis
+				}
 			}
 
 			if de.IsDir() {
@@ -98,7 +111,6 @@ func getAllFiles(diffPath string) []fileInfoExtended {
 			}
 
 			if de.IsRegular() {
-				fmt.Print("\033[u\033[K", osPathname)
 				fileinfo, _ := os.Stat(osPathname)
 				fInfoExt := fileInfoExtended{
 					osPathname: osPathname,
@@ -115,7 +127,6 @@ func getAllFiles(diffPath string) []fileInfoExtended {
 		},
 	})
 
-	fmt.Print("\033[u\033[KDone\n")
 	return foundFiles
 }
 
@@ -176,14 +187,15 @@ func mainWork(opt *getoptions.GetOpt, pathAExt fileInfoExtended, pathBExt fileIn
 }
 
 func main() {
+
 	opt := getoptions.New()
 	opt.Bool("help", false, opt.Alias("h", "?"))
 	opt.Bool("version", false, opt.Alias("V"))
 	opt.Bool("dry-run", false, opt.Description("Dry-run skips updating the underlying file contents"))
 	opt.Bool("report-only", false, opt.Alias("q"), opt.Description("Report only files that differ"))
-	//opt.Bool("recursive", true, opt.Description("Recursively look for files if inputs are directories"))
-	// opt.Bool("follow-sym-links", false, opt.Description("Follow symlinks"))
-	// opt.Bool("include-hidden-files", false, opt.Description("Include hidden files and directories"))
+	opt.StringSliceVar(&ignorePaths, "ignore-paths", 1, 1, opt.Description("Excludes pathnames from directory search, providing a value overrides the defaults of .git and .terraform"))
+	opt.BoolVar(&includeHidden, "include-hidden", false, opt.Description("Include hidden files and directories"))
+	opt.BoolVar(&followSymLinks, "follow-sym-links", false, opt.Description("Follow symlinks"))
 	// opt.Bool("report-identical-files", false, opt.Alias("s"), opt.Description("Report only files that are the same"))
 	//diffContext := opt.IntOptional("context", 3)
 
@@ -203,7 +215,9 @@ func main() {
 	}
 
 	if len(remaining) != 2 {
-		fmt.Fprintf(os.Stderr, "Missing arguments to diff, allowed 2 !!!\n")
+		fmt.Fprintf(os.Stderr, "Missing arguments to diff, allowed 2\n")
+		fmt.Fprintf(os.Stderr, "Differences are computed which describe the transformation of text1 into text2\n")
+		fmt.Fprintf(os.Stderr, "Example: ./dap textfile1 textfile2\n\n")
 		fmt.Fprintf(os.Stderr, opt.Help())
 		os.Exit(1)
 	}
