@@ -186,7 +186,7 @@ func mainWork(opt *getoptions.GetOpt, pathAExt fileInfoExtended, pathBExt fileIn
 	return 0
 }
 
-func main() {
+func program(args []string) int {
 
 	opt := getoptions.New()
 	opt.Bool("help", false, opt.Alias("h", "?"))
@@ -199,19 +199,21 @@ func main() {
 	// opt.Bool("report-identical-files", false, opt.Alias("s"), opt.Description("Report only files that are the same"))
 	//diffContext := opt.IntOptional("context", 3)
 
-	remaining, err := opt.Parse(os.Args[1:])
-	if opt.Called("help") {
-		fmt.Fprintf(os.Stderr, opt.Help())
-		os.Exit(1)
-	}
-	if opt.Called("version") {
-		fmt.Println(semVersion)
-		os.Exit(1)
-	}
+	remaining, err := opt.Parse(args)
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n\n", err)
 		fmt.Fprintf(os.Stderr, opt.Help(getoptions.HelpSynopsis))
-		os.Exit(1)
+		return 2
+	}
+
+	if opt.Called("help") {
+		fmt.Fprintf(os.Stderr, opt.Help())
+		return 0
+	}
+	if opt.Called("version") {
+		fmt.Println(semVersion)
+		return 0
 	}
 
 	if len(remaining) != 2 {
@@ -219,24 +221,29 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Differences are computed which describe the transformation of text1 into text2\n")
 		fmt.Fprintf(os.Stderr, "Example: ./dap textfile1 textfile2\n\n")
 		fmt.Fprintf(os.Stderr, opt.Help())
-		os.Exit(1)
+		return 2
 	}
 
 	pathA, err := os.Stat(remaining[0])
 	if os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "Error, No such file or directory: %s\n", remaining[0])
-		os.Exit(1)
+		return 127
 	}
 
 	pathB, err := os.Stat(remaining[1])
 	if os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "Error, No such file or directory: %s\n", remaining[1])
-		os.Exit(1)
+		return 127
 	}
 
 	pathAExtened := fileInfoExtended{osPathname: remaining[0], fileInfo: pathA}
 	pathBExtened := fileInfoExtended{osPathname: remaining[1], fileInfo: pathB}
 
-	os.Exit(mainWork(opt, pathAExtened, pathBExtened))
+	return mainWork(opt, pathAExtened, pathBExtened)
+}
+
+func main() {
+
+	os.Exit(program(os.Args[1:]))
 
 }

@@ -133,3 +133,30 @@ func Test_getAllFiles(t *testing.T) {
 	includeHidden = false
 	followSymLinks = false
 }
+
+func Test_program(t *testing.T) {
+	type args struct {
+		args []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want int
+	}{
+		{"Help", args{args: []string{"--help"}}, 0},
+		{"Version", args{args: []string{"--version"}}, 0},
+		{"Empty", args{args: []string{""}}, 2},
+		{"WrongArgs", args{args: []string{"--sfdsfsdfsdf"}}, 2},
+		{"OneArg", args{args: []string{"tests/same/a/t1.txt"}}, 2},
+		{"MissingPath", args{args: []string{"tests/fakedir/a/t1.txt", "tests/same/a/t1.txt"}}, 127},
+		{"MissingPath2", args{args: []string{"tests/same/a/t1.txt", "tests/fakedir/a/t1.txt"}}, 127},
+		{"NoDiff", args{args: []string{"tests/same/b/t1.txt", "tests/same/a/t1.txt"}}, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := program(tt.args.args); got != tt.want {
+				t.Errorf("program() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
