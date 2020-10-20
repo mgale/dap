@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -13,12 +14,13 @@ import (
 	"github.com/karrick/godirwalk"
 )
 
-const semVersion = "0.0.1"
+const semVersion = "0.0.4"
 
 var diffContext int
 var ignorePaths []string
 var includeHidden bool = false
 var followSymLinks bool = false
+var enableDebugLogs bool = false
 
 type trackedStats struct {
 	FilesScanned   int
@@ -64,6 +66,12 @@ func logError(myMsg string, err error) {
 	}
 }
 
+func logDebug(myMsg string) {
+	if enableDebugLogs {
+		fmt.Printf("Debug: %v\n", myMsg)
+	}
+}
+
 // showFinishedResults takes in an bufio writer like
 // os.Stdout for example and writes the results.
 func showFinishedResults(output *bufio.Writer, runtimeStats trackedStats) error {
@@ -88,8 +96,10 @@ func getAllFiles(diffPath string) []fileInfoExtended {
 		Unsorted: false,
 		Callback: func(osPathname string, de *godirwalk.Dirent) error {
 
+			logDebug("Checking file:" + osPathname)
 			if strings.Contains(osPathname, "/.") {
 				if includeHidden == false {
+					logDebug("Hidden check: Ignoring:" + osPathname)
 					return godirwalk.SkipThis
 				}
 			}
@@ -116,6 +126,7 @@ func getAllFiles(diffPath string) []fileInfoExtended {
 					osPathname: osPathname,
 					fileInfo:   fileinfo,
 				}
+				logDebug("Including file:" + osPathname)
 				foundFiles = append(foundFiles, fInfoExt)
 				runtimeStats.FilesScanned++
 
@@ -138,6 +149,8 @@ func mainWork(opt *getoptions.GetOpt, pathAExt fileInfoExtended, pathBExt fileIn
 
 	if pathAExt.fileInfo.IsDir() && pathBExt.fileInfo.IsDir() {
 		// We are comparing directories
+		pathAExt.osPathname = filepath.Clean(pathAExt.osPathname)
+		pathBExt.osPathname = filepath.Clean(pathBExt.osPathname)
 		pathAFiles := getAllFiles(pathAExt.osPathname)
 		pathBFiles := getAllFiles(pathBExt.osPathname)
 
@@ -147,10 +160,12 @@ func mainWork(opt *getoptions.GetOpt, pathAExt fileInfoExtended, pathBExt fileIn
 			fileKey := strings.TrimPrefix(fileExtInfo.osPathname, pathAExt.osPathname)
 			fileMap[fileKey] = []fileInfoExtended{fileExtInfo}
 			fileMapList = append(fileMapList, fileKey)
+			logDebug("Primary path:" + fileKey)
 		}
 
 		for _, fileExtInfo := range pathBFiles {
 			fileKey := strings.TrimPrefix(fileExtInfo.osPathname, pathBExt.osPathname)
+			logDebug("Secondary path:" + fileKey)
 			if _, ok := fileMap[fileKey]; ok {
 				mylist := fileMap[fileKey]
 				mylist = append(mylist, fileExtInfo)
@@ -163,10 +178,13 @@ func mainWork(opt *getoptions.GetOpt, pathAExt fileInfoExtended, pathBExt fileIn
 		for _, fileName := range fileMapList {
 			if len(fileMap[fileName]) == 2 {
 				// Files exist in both dirs
+				logDebug("Comparing file:" + fileName)
 				_, err := compareFiles(fileMap[fileName][0], fileMap[fileName][1], opt.Called("dry-run"), opt.Called("report-only"))
 				if err != nil {
 					return 1
 				}
+			} else {
+				logDebug("Skipping file:" + fileName)
 			}
 		}
 
@@ -191,6 +209,7 @@ func program(args []string) int {
 	opt := getoptions.New()
 	opt.Bool("help", false, opt.Alias("h", "?"))
 	opt.Bool("version", false, opt.Alias("V"))
+	opt.BoolVar(&enableDebugLogs, "debug", false)
 	opt.Bool("dry-run", false, opt.Description("Dry-run skips updating the underlying file contents"))
 	opt.Bool("report-only", false, opt.Alias("q"), opt.Description("Report only files that differ"))
 	opt.StringSliceVar(&ignorePaths, "ignore-paths", 1, 1, opt.Description("Excludes pathnames from directory search, providing a value overrides the defaults of .git and .terraform"))

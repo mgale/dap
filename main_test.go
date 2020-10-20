@@ -43,6 +43,7 @@ func Test_mainWork(t *testing.T) {
 
 	dirA := loadTestFile("tests/different/hostA")
 	dirB := loadTestFile("tests/different/hostB")
+	dirC := loadTestFile("tests/different/hostB/")
 
 	optTest := getoptions.New()
 	optTest.Bool("report-only", true)
@@ -59,6 +60,7 @@ func Test_mainWork(t *testing.T) {
 	}{
 		{"Files", args{opt: optTest, pathAExt: fileA, pathBExt: fileB}, 0},
 		{"Dirs", args{opt: optTest, pathAExt: dirA, pathBExt: dirB}, 0},
+		{"DirsExtraSlash", args{opt: optTest, pathAExt: dirA, pathBExt: dirC}, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
