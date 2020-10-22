@@ -20,13 +20,13 @@ func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun b
 		return false, err
 	}
 
-	if (reportOnly == true) && (equal == false) {
+	if reportOnly && !equal {
 		runtimeStats.FilesWDiff++
 		fmt.Printf("Files %s and %s differ\n", fileAExt.osPathname, fileBExt.osPathname)
 		return equal, nil
 	}
 
-	if equal == true {
+	if equal {
 		// Files are the same
 		return equal, nil
 	}
@@ -45,16 +45,16 @@ func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun b
 	runtimeStats.PatchesSkipped += (resultDiffInfo.patchesTotal - resultDiffInfo.patchesApplied)
 
 	if resultDiffInfo.patchesFailed > 0 {
-		return equal, fmt.Errorf("Errors occurred while patching file, skip file writes: %s", fileAExt.osPathname)
+		return equal, fmt.Errorf("while patching file, skip file writes: %s", fileAExt.osPathname)
 	}
 
-	if dryRun == true {
+	if dryRun {
 		fmt.Printf("Dry-run enabled, skipping file writes: %s\n", fileAExt.osPathname)
 		return equal, nil
 	}
 
 	// dryrun is off and we have patched the file
-	if (dryRun == false) && (resultDiffInfo.patched == true) {
+	if !dryRun && resultDiffInfo.patched {
 		err := ioutil.WriteFile(fileAExt.osPathname, resultDiffInfo.newContent, 0644)
 		return equal, err
 	}
@@ -95,11 +95,12 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 		return fileDiffInfo, err
 	}
 
-	if lookAtPatches == false {
+	if !lookAtPatches {
 		return fileDiffInfo, nil
 	}
 
 	fileContent, patchesTotal, patchesFailed, err := handlePatches(dmp, diffs, fileAExt)
+	// TODO: Handle error
 	patchesApplied := patchesTotal - patchesFailed
 
 	fileDiffInfo.patchesTotal = patchesTotal
@@ -165,7 +166,7 @@ func handlePatches(dmp *diffmatchpatch.DiffMatchPatch, diffs []diffmatchpatch.Di
 	patchesFailed := 0
 	for _, patchResult := range patchResults {
 		patchesTotal++
-		if patchResult == false {
+		if !patchResult {
 			patchesFailed++
 		}
 	}
