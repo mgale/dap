@@ -207,6 +207,10 @@ func mainWork(opt *getoptions.GetOpt, pathAExt fileInfoExtended, pathBExt fileIn
 func program(args []string) int {
 
 	opt := getoptions.New()
+	opt.Self("", `Transforms <original> into <desired_changes>. Said another way, brings changes into <original> from <desired_changes>.
+
+Example: ./dap original desired_changes`)
+	opt.HelpSynopsisArgs("<original> <desired_changes>")
 	opt.Bool("help", false, opt.Alias("h", "?"))
 	opt.Bool("version", false, opt.Alias("V"))
 	opt.BoolVar(&enableDebugLogs, "debug", false)
@@ -236,9 +240,7 @@ func program(args []string) int {
 	}
 
 	if len(remaining) != 2 {
-		fmt.Fprintf(os.Stderr, "Missing arguments to diff, allowed 2\n")
-		fmt.Fprintf(os.Stderr, "Differences are computed which describe the transformation of text1 into text2\n")
-		fmt.Fprintf(os.Stderr, "Example: ./dap textfile1 textfile2\n\n")
+		fmt.Fprintf(os.Stderr, "ERROR: Missing required arguments!\n")
 		fmt.Fprint(os.Stderr, opt.Help())
 		return 2
 	}
