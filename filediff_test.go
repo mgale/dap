@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -37,14 +38,16 @@ func Test_askForConfirmation(t *testing.T) {
 	tests := []struct {
 		name string
 		want bool
+		err  error
 	}{
-		{"y", true},
-		{"Y", true},
-		{"yes", true},
-		{"n", false},
-		{"N", false},
-		{"no", false},
-		{"blabla", false},
+		{"y", true, nil},
+		{"Y", true, nil},
+		{"yes", true, nil},
+		{"n", false, nil},
+		{"N", false, nil},
+		{"no", false, nil},
+		{"q", false, ErrorCanceled},
+		{"blabla", false, nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -56,8 +59,18 @@ func Test_askForConfirmation(t *testing.T) {
 			os.Stdin = tmpfile
 
 			updateStdInContent(tmpfile, tt.name)
-			if got := askForConfirmation(); got != tt.want {
+			got, err := askForConfirmation()
+			if got != tt.want {
 				t.Errorf("askForConfirmation() = %v, want %v", got, tt.want)
+			}
+			if err != nil && tt.err == nil {
+				t.Errorf("askForConfirmation() = %v, want %v", err, tt.err)
+			}
+			if err == nil && tt.err != nil {
+				t.Errorf("askForConfirmation() = %v, want %v", err, tt.err)
+			}
+			if err != nil && tt.err != nil && !errors.Is(err, tt.err) {
+				t.Errorf("askForConfirmation() = %v, want %v", err, tt.err)
 			}
 
 			os.Remove(tmpfile.Name())
