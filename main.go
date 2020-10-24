@@ -62,7 +62,7 @@ var finishedTpl = template.Must(template.New("finishedReponse").Parse(finishedRe
 func logError(myMsg string, err error) {
 	fmt.Fprintf(os.Stderr, "Error: %s\n", myMsg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprint(os.Stderr, err.Error())
 	}
 }
 
@@ -98,14 +98,14 @@ func getAllFiles(diffPath string) []fileInfoExtended {
 
 			logDebug("Checking file:" + osPathname)
 			if strings.Contains(osPathname, "/.") {
-				if includeHidden == false {
+				if !includeHidden {
 					logDebug("Hidden check: Ignoring:" + osPathname)
 					return godirwalk.SkipThis
 				}
 			}
 
 			if de.IsSymlink() {
-				if followSymLinks == false {
+				if !followSymLinks {
 					return godirwalk.SkipThis
 				}
 			}
@@ -188,7 +188,7 @@ func mainWork(opt *getoptions.GetOpt, pathAExt fileInfoExtended, pathBExt fileIn
 			}
 		}
 
-	} else if pathAExt.fileInfo.IsDir() == false && pathBExt.fileInfo.IsDir() == false {
+	} else if !pathAExt.fileInfo.IsDir() && !pathBExt.fileInfo.IsDir() {
 		// We are comparing two files against each other
 		runtimeStats.FilesScanned = 2
 		_, err := compareFiles(pathAExt, pathBExt, opt.Called("dry-run"), opt.Called("report-only"))
@@ -207,6 +207,10 @@ func mainWork(opt *getoptions.GetOpt, pathAExt fileInfoExtended, pathBExt fileIn
 func program(args []string) int {
 
 	opt := getoptions.New()
+	opt.Self("", `Transforms <original> into <desired_changes>. Said another way, brings changes into <original> from <desired_changes>.
+
+Example: ./dap original desired_changes`)
+	opt.HelpSynopsisArgs("<original> <desired_changes>")
 	opt.Bool("help", false, opt.Alias("h", "?"))
 	opt.Bool("version", false, opt.Alias("V"))
 	opt.BoolVar(&enableDebugLogs, "debug", false)
@@ -222,12 +226,12 @@ func program(args []string) int {
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n\n", err)
-		fmt.Fprintf(os.Stderr, opt.Help(getoptions.HelpSynopsis))
+		fmt.Fprint(os.Stderr, opt.Help(getoptions.HelpSynopsis))
 		return 2
 	}
 
 	if opt.Called("help") {
-		fmt.Fprintf(os.Stderr, opt.Help())
+		fmt.Fprint(os.Stderr, opt.Help())
 		return 0
 	}
 	if opt.Called("version") {
@@ -236,10 +240,8 @@ func program(args []string) int {
 	}
 
 	if len(remaining) != 2 {
-		fmt.Fprintf(os.Stderr, "Missing arguments to diff, allowed 2\n")
-		fmt.Fprintf(os.Stderr, "Differences are computed which describe the transformation of text1 into text2\n")
-		fmt.Fprintf(os.Stderr, "Example: ./dap textfile1 textfile2\n\n")
-		fmt.Fprintf(os.Stderr, opt.Help())
+		fmt.Fprintf(os.Stderr, "ERROR: Missing required arguments!\n")
+		fmt.Fprint(os.Stderr, opt.Help())
 		return 2
 	}
 

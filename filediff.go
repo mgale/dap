@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -8,6 +9,8 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/udhos/equalfile"
 )
+
+var ErrorCanceled = fmt.Errorf("canceled by user")
 
 // compareFiles is the entry point for file comparison, diff reviews and apply patches
 // TBD: Currently the match result is returned, not sure if we need this or not.
@@ -20,13 +23,13 @@ func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun b
 		return false, err
 	}
 
-	if (reportOnly == true) && (equal == false) {
+	if reportOnly && !equal {
 		runtimeStats.FilesWDiff++
 		fmt.Printf("Files %s and %s differ\n", fileAExt.osPathname, fileBExt.osPathname)
 		return equal, nil
 	}
 
-	if equal == true {
+	if equal {
 		// Files are the same
 		return equal, nil
 	}
@@ -45,16 +48,16 @@ func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun b
 	runtimeStats.PatchesSkipped += (resultDiffInfo.patchesTotal - resultDiffInfo.patchesApplied)
 
 	if resultDiffInfo.patchesFailed > 0 {
-		return equal, fmt.Errorf("Errors occurred while patching file, skip file writes: %s", fileAExt.osPathname)
+		return equal, fmt.Errorf("while patching file, skip file writes: %s", fileAExt.osPathname)
 	}
 
-	if dryRun == true {
+	if dryRun {
 		fmt.Printf("Dry-run enabled, skipping file writes: %s\n", fileAExt.osPathname)
 		return equal, nil
 	}
 
 	// dryrun is off and we have patched the file
-	if (dryRun == false) && (resultDiffInfo.patched == true) {
+	if !dryRun && resultDiffInfo.patched {
 		err := ioutil.WriteFile(fileAExt.osPathname, resultDiffInfo.newContent, 0644)
 		return equal, err
 	}
@@ -95,11 +98,12 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 		return fileDiffInfo, err
 	}
 
-	if lookAtPatches == false {
+	if !lookAtPatches {
 		return fileDiffInfo, nil
 	}
 
 	fileContent, patchesTotal, patchesFailed, err := handlePatches(dmp, diffs, fileAExt)
+	// TODO: Handle error
 	patchesApplied := patchesTotal - patchesFailed
 
 	fileDiffInfo.patchesTotal = patchesTotal
@@ -123,11 +127,17 @@ func reviewDiff(mydiffString string, fileAName string, fileBName string, autoPat
 
 	response := false
 	if autoPatch {
-		fmt.Print("Review patches and apply them? (y/n): AutoAppling")
+		fmt.Print("Review patches and apply them [y,n,q]? AutoAppling")
 		response = true
 	} else {
-		fmt.Print("Review patches and apply them? (y/n):")
-		response = askForConfirmation()
+		fmt.Print("Review patches and apply them [y,n,q]?")
+		rsp, err := askForConfirmation()
+		if err != nil {
+			if errors.Is(err, ErrorCanceled) {
+				return rsp, err
+			}
+		}
+		response = rsp
 	}
 	return response, nil
 }
@@ -140,11 +150,17 @@ func reviewPatchDetailed(patchString string, fileAName string, autoPatch bool) (
 
 	response := false
 	if autoPatch {
-		fmt.Print("Apply patch? (y/n): AutoAppling")
+		fmt.Print("Apply patch [y,n,q]? AutoAppling")
 		response = true
 	} else {
-		fmt.Print("Apply patch? (y/n):")
-		response = askForConfirmation()
+		fmt.Print("Apply patch [y,n,q]? ")
+		rsp, err := askForConfirmation()
+		if err != nil {
+			if errors.Is(err, ErrorCanceled) {
+				return rsp, err
+			}
+		}
+		response = rsp
 	}
 	return response, nil
 }
@@ -165,7 +181,7 @@ func handlePatches(dmp *diffmatchpatch.DiffMatchPatch, diffs []diffmatchpatch.Di
 	patchesFailed := 0
 	for _, patchResult := range patchResults {
 		patchesTotal++
-		if patchResult == false {
+		if !patchResult {
 			patchesFailed++
 		}
 	}
@@ -195,7 +211,7 @@ func stagePatches(myPatches []diffmatchpatch.Patch, fileAName string, autoPatch 
 }
 
 // Helper method to ask for confirmation from a User
-func askForConfirmation() bool {
+func askForConfirmation() (bool, error) {
 	var response string
 
 	_, err := fmt.Scanln(&response)
@@ -204,17 +220,23 @@ func askForConfirmation() bool {
 			response = ""
 		} else {
 			logError("Error during confirmation", err)
-			return false
+			// TODO: Should this still be nil?
+			return false, nil
 		}
 	}
 
 	switch strings.ToLower(response) {
 	case "y", "yes":
-		return true
+		return true, nil
 	case "n", "no":
-		return false
+		return false, nil
+	case "q", "quit":
+		return false, ErrorCanceled
 	default:
-		fmt.Println("I'm sorry but I didn't get what you meant, please type (y)es or (n)o and then press enter:")
+		fmt.Print(`y - patch this hunk
+n - do not patch this hunk
+q - quit; do not patch this hunk or any of the remaining ones
+`)
 		return askForConfirmation()
 	}
 }
