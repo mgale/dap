@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
 
+	"github.com/gookit/color"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/udhos/equalfile"
 )
@@ -77,6 +79,35 @@ func loadFileContent(fileX *fileInfoExtended) error {
 	return nil
 }
 
+func splitLines(s string) []string {
+	var lines []string
+	sc := bufio.NewScanner(strings.NewReader(s))
+	for sc.Scan() {
+		lines = append(lines, sc.Text())
+	}
+	return lines
+}
+
+func LineByLineDiff(diffs []diffmatchpatch.Diff) string {
+	out := ""
+	for _, diff := range diffs {
+		lines := splitLines(diff.Text)
+		switch diff.Type {
+		case diffmatchpatch.DiffInsert:
+			for _, line := range lines {
+				out += color.Style{color.Green}.Sprintf("+ %s\n", line)
+			}
+		case diffmatchpatch.DiffDelete:
+			for _, line := range lines {
+				out += color.Style{color.Red}.Sprintf("- %s\n", line)
+			}
+		case diffmatchpatch.DiffEqual:
+			out += color.Style{color.Blue}.Sprint("---\n")
+		}
+	}
+	return out
+}
+
 // Get a list of Patches / Chunks
 func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiffInfo, error) {
 
@@ -93,7 +124,7 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 
 	fileDiffInfo.diffCount = len(diffs)
 	//review the diff with the user
-	lookAtPatches, err := reviewDiff(dmp.DiffPrettyTextByLine(diffs), fileAExt.osPathname, fileBExt.osPathname, fileAExt.autoPatch)
+	lookAtPatches, err := reviewDiff(LineByLineDiff(diffs), fileAExt.osPathname, fileBExt.osPathname, fileAExt.autoPatch)
 	if err != nil {
 		return fileDiffInfo, err
 	}
@@ -120,17 +151,15 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 }
 
 func reviewDiff(mydiffString string, fileAName string, fileBName string, autoPatch bool) (bool, error) {
-	fmt.Println("#####################################################")
-	fmt.Println("#DiffOutPut: Appling diff to:", fileAName, "from:", fileBName)
+	color.Style{color.White, color.OpBold}.Printf("Appling diff to: %s, from: %s\n", fileAName, fileBName)
 	fmt.Println(mydiffString)
-	fmt.Println("#####################################################")
 
 	response := false
 	if autoPatch {
 		fmt.Print("Review patches and apply them [y,n,q]? AutoAppling")
 		response = true
 	} else {
-		fmt.Print("Review patches and apply them [y,n,q]?")
+		color.Style{color.Blue, color.OpBold}.Print("Review patches and apply them [y,n,q]? ")
 		rsp, err := askForConfirmation()
 		if err != nil {
 			if errors.Is(err, ErrorCanceled) {
@@ -143,17 +172,15 @@ func reviewDiff(mydiffString string, fileAName string, fileBName string, autoPat
 }
 
 func reviewPatchDetailed(patchString string, fileAName string, autoPatch bool) (bool, error) {
-	fmt.Println("#####################################################")
-	fmt.Println("#PatchOutPut: Appling patch to:", fileAName)
+	color.Style{color.White, color.OpBold}.Printf("Appling diff to: %s\n", fileAName)
 	fmt.Println(patchString)
-	fmt.Println("#####################################################")
 
 	response := false
 	if autoPatch {
 		fmt.Print("Apply patch [y,n,q]? AutoAppling")
 		response = true
 	} else {
-		fmt.Print("Apply patch [y,n,q]? ")
+		color.Style{color.Blue, color.OpBold}.Print("Apply patch [y,n,q]? ")
 		rsp, err := askForConfirmation()
 		if err != nil {
 			if errors.Is(err, ErrorCanceled) {
