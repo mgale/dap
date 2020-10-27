@@ -14,7 +14,7 @@ import (
 	"github.com/karrick/godirwalk"
 )
 
-const semVersion = "0.0.4"
+const semVersion = "0.0.5"
 
 var diffContext int
 var ignorePaths []string
