@@ -151,7 +151,7 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 }
 
 func reviewDiff(mydiffString string, fileAName string, fileBName string, autoPatch bool) (bool, error) {
-	color.Style{color.White, color.OpBold}.Printf("Appling diff to: %s, from: %s\n", fileAName, fileBName)
+	color.Style{color.OpBold}.Printf("Appling diff to: %s, from: %s\n", fileAName, fileBName)
 	fmt.Println(mydiffString)
 
 	response := false
@@ -172,7 +172,7 @@ func reviewDiff(mydiffString string, fileAName string, fileBName string, autoPat
 }
 
 func reviewPatchDetailed(patchString string, fileAName string, autoPatch bool) (bool, error) {
-	color.Style{color.White, color.OpBold}.Printf("Appling diff to: %s\n", fileAName)
+	color.Style{color.OpBold}.Printf("Appling diff to: %s\n", fileAName)
 	fmt.Println(patchString)
 
 	response := false
