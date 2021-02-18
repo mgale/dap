@@ -38,12 +38,12 @@ func Test_showFinishedResults(t *testing.T) {
 
 func Test_mainWork(t *testing.T) {
 
-	fileA := loadTestFile("tests/same/a/t1.txt")
-	fileB := loadTestFile("tests/same/b/t1.txt")
+	fileA := loadTestFile("testdata/same/a/t1.txt")
+	fileB := loadTestFile("testdata/same/b/t1.txt")
 
-	dirA := loadTestFile("tests/different/hostA")
-	dirB := loadTestFile("tests/different/hostB")
-	dirC := loadTestFile("tests/different/hostB/")
+	dirA := loadTestFile("testdata/different/hostA")
+	dirB := loadTestFile("testdata/different/hostB")
+	dirC := loadTestFile("testdata/different/hostB/")
 
 	optTest := getoptions.New()
 	optTest.Bool("report-only", true)
@@ -74,22 +74,22 @@ func Test_mainWork(t *testing.T) {
 func Test_getAllFiles(t *testing.T) {
 
 	fileListDefault := []string{
-		"tests/dirwalk/two/two.txt",
-		"tests/dirwalk/three/three.txt",
-		"tests/dirwalk/four/four.txt",
+		"testdata/dirwalk/two/two.txt",
+		"testdata/dirwalk/three/three.txt",
+		"testdata/dirwalk/four/four.txt",
 	}
 
 	fileListHidden := []string{
-		"tests/dirwalk/two/two.txt",
-		"tests/dirwalk/three/three.txt",
-		"tests/dirwalk/four/four.txt",
-		"tests/dirwalk/five/.hiddenD/five.txt",
+		"testdata/dirwalk/two/two.txt",
+		"testdata/dirwalk/three/three.txt",
+		"testdata/dirwalk/four/four.txt",
+		"testdata/dirwalk/five/.hiddenD/five.txt",
 	}
 
 	fileListSymLinks := []string{
-		"tests/dirwalk/two/two.txt",
-		"tests/dirwalk/three/three.txt",
-		"tests/dirwalk/four/four.txt",
+		"testdata/dirwalk/two/two.txt",
+		"testdata/dirwalk/three/three.txt",
+		"testdata/dirwalk/four/four.txt",
 	}
 
 	type args struct {
@@ -102,9 +102,9 @@ func Test_getAllFiles(t *testing.T) {
 		testSymLinks bool
 		want         []string
 	}{
-		{"Defaults", args{diffPath: "tests/dirwalk"}, false, false, fileListDefault},
-		{"Hidden", args{diffPath: "tests/dirwalk"}, true, false, fileListHidden},
-		{"SymLinks", args{diffPath: "tests/dirwalk"}, false, true, fileListSymLinks},
+		{"Defaults", args{diffPath: "testdata/dirwalk"}, false, false, fileListDefault},
+		{"Hidden", args{diffPath: "testdata/dirwalk"}, true, false, fileListHidden},
+		{"SymLinks", args{diffPath: "testdata/dirwalk"}, false, true, fileListSymLinks},
 	}
 	for _, tt := range tests {
 
@@ -149,10 +149,10 @@ func Test_program(t *testing.T) {
 		{"Version", args{args: []string{"--version"}}, 0},
 		{"Empty", args{args: []string{""}}, 2},
 		{"WrongArgs", args{args: []string{"--sfdsfsdfsdf"}}, 2},
-		{"OneArg", args{args: []string{"tests/same/a/t1.txt"}}, 2},
-		{"MissingPath", args{args: []string{"tests/fakedir/a/t1.txt", "tests/same/a/t1.txt"}}, 127},
-		{"MissingPath2", args{args: []string{"tests/same/a/t1.txt", "tests/fakedir/a/t1.txt"}}, 127},
-		{"NoDiff", args{args: []string{"tests/same/b/t1.txt", "tests/same/a/t1.txt"}}, 0},
+		{"OneArg", args{args: []string{"testdata/same/a/t1.txt"}}, 2},
+		{"MissingPath", args{args: []string{"testdata/fakedir/a/t1.txt", "testdata/same/a/t1.txt"}}, 127},
+		{"MissingPath2", args{args: []string{"testdata/same/a/t1.txt", "testdata/fakedir/a/t1.txt"}}, 127},
+		{"NoDiff", args{args: []string{"testdata/same/b/t1.txt", "testdata/same/a/t1.txt"}}, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

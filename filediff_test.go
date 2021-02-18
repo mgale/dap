@@ -143,8 +143,8 @@ func Test_reviewPatchDetailed(t *testing.T) {
 
 func Test_loadFileContent(t *testing.T) {
 
-	fileA := loadTestFile("tests/same/a/t1.txt")
-	fileFake := loadTestFile("tests/fakefile")
+	fileA := loadTestFile("testdata/same/a/t1.txt")
+	fileFake := loadTestFile("testdata/fakefile")
 
 	type args struct {
 		fileX *fileInfoExtended
@@ -168,12 +168,12 @@ func Test_loadFileContent(t *testing.T) {
 
 func Test_createDiffs(t *testing.T) {
 
-	fileA := loadTestFile("tests/same/a/t1.txt")
+	fileA := loadTestFile("testdata/same/a/t1.txt")
 	loadFileContent(&fileA)
-	fileC := loadTestFile("tests/smalldiff/t2.txt")
+	fileC := loadTestFile("testdata/smalldiff/t2.txt")
 	loadFileContent(&fileC)
 
-	fileSource := loadTestFile("tests/smalldiff/t2.txt")
+	fileSource := loadTestFile("testdata/smalldiff/t2.txt")
 	loadFileContent(&fileSource)
 
 	tmpfile, err := ioutil.TempFile("", "example")
@@ -181,7 +181,7 @@ func Test_createDiffs(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	data, _ := ioutil.ReadFile("tests/smalldiff/t1.txt")
+	data, _ := ioutil.ReadFile("testdata/smalldiff/t1.txt")
 	err = ioutil.WriteFile(tmpfile.Name(), data, 0644)
 
 	filePatch := loadTestFile(tmpfile.Name())
@@ -233,19 +233,19 @@ func Test_createDiffs(t *testing.T) {
 
 func Test_compareFiles(t *testing.T) {
 
-	fileA := loadTestFile("tests/same/a/t1.txt")
-	fileB := loadTestFile("tests/same/b/t1.txt")
-	fileC := loadTestFile("tests/smalldiff/t2.txt")
-	fileFake := loadTestFile("tests/fakefile")
+	fileA := loadTestFile("testdata/same/a/t1.txt")
+	fileB := loadTestFile("testdata/same/b/t1.txt")
+	fileC := loadTestFile("testdata/smalldiff/t2.txt")
+	fileFake := loadTestFile("testdata/fakefile")
 
-	fileSource := loadTestFile("tests/smalldiff/t2.txt")
+	fileSource := loadTestFile("testdata/smalldiff/t2.txt")
 
 	tmpfile, err := ioutil.TempFile("", "example")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	data, _ := ioutil.ReadFile("tests/smalldiff/t1.txt")
+	data, _ := ioutil.ReadFile("testdata/smalldiff/t1.txt")
 	err = ioutil.WriteFile(tmpfile.Name(), data, 0644)
 
 	filePatch := loadTestFile(tmpfile.Name())
@@ -256,7 +256,7 @@ func Test_compareFiles(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	data, _ = ioutil.ReadFile("tests/smalldiff/t1.txt")
+	data, _ = ioutil.ReadFile("testdata/smalldiff/t1.txt")
 	err = ioutil.WriteFile(tmpfile2.Name(), data, 0644)
 
 	filePatch2 := loadTestFile(tmpfile2.Name())
