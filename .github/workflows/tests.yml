@@ -23,13 +23,27 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build
-        run: go build -v .
+        run: make build
 
       - name: Test
-        run: go test -coverprofile=coverage.txt -covermode=atomic ./...
+        run: make test
+
+      - name: Coverage
+        run: make coverage
+        env:
+          EXPORT_RESULT: true
+
+      - name: CodeCov
+        uses: codecov/codecov-action@v1
+        with:
+          #files: ./coverage.xml
+          flags: unittests # optional
+          name: codecov-umbrella # optional
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
 
       - name: Upload
         uses: actions/upload-artifact@v2
         with:
           name: dap
-          path: dap
+          path: out/bin/dap
