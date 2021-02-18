@@ -1,9 +1,11 @@
-= dap
+= Diff and Patch (dap)
 Michael Gale https://github.com/mgale
 :idprefix:
 :name: dap
 :toc: macro
 :toclevels: 4
+
+image:https://codecov.io/gh/mgale/dap/branch/master/graph/badge.svg?token=0NS5KGM9IX[link=https://codecov.io/gh/mgale/dap]
 
 Diff and Patch (dap) is a tool inspired by https://meldmerge.org/ and https://github.com/google/diff-match-patch
 
@@ -12,7 +14,7 @@ toc::[]
 [[purpose]]
 == Purpose ==
 
-dap was created while working with mono repos and changes need to be promoted between file system folders instead of a branch or tag. It is designed to allow the user to pull in specific change sets between the files instead of a full copy paste or rsync still operation.
+dap was created while working with mono repos and changes need to be promoted between file system folders instead of a branch or tag. It is designed to allow the user to pull in specific change sets between the files instead of a full copy paste or rsync operation.
 
 If a difference between files exist a diff is displayed and the user is asked if they want to review and apply patches. If the user says no nothing happens and the operation is repeated for the next file. If the user says yes then the differences are broken up into chunks, a.k.a patches. Then each patch is reviewed and can either be applied or skipped.
 
@@ -37,17 +39,32 @@ The --dry-run option performs all the steps and confirmations with the exception
 .Show help
 ----
 $ ./dap --help
+NAME:
+    dap - Transforms <original> into <desired_changes>. Said another way, brings changes into <original> from <desired_changes>.
+        
+        Example: ./dap original desired_changes
+
 SYNOPSIS:
-    dap [--dry-run] [--help|-h|-?] [--report-only|-q] [--version|-V] [<args>]
+    dap [--debug] [--dry-run] [--follow-sym-links] [--help|-h|-?]
+        [--ignore-paths <string>]... [--include-hidden] [--report-only|-q]
+        [--version|-V] <original> <desired_changes>
 
 OPTIONS:
-    --dry-run           Dry-run skips updating the underlying file contents (default: false)
+    --debug                    (default: false)
 
-    --help|-h|-?        (default: false)
+    --dry-run                  Dry-run skips updating the underlying file contents (default: false)
 
-    --report-only|-q    Report only files that differ (default: false)
+    --follow-sym-links         Follow symlinks (default: false)
 
-    --version|-V        (default: false)
+    --help|-h|-?               (default: false)
+
+    --ignore-paths <string>    Excludes pathnames from directory search, providing a value overrides the defaults of .git and .terraform (default: [])
+
+    --include-hidden           Include hidden files and directories (default: false)
+
+    --report-only|-q           Report only files that differ (default: false)
+
+    --version|-V               (default: false)
 
 
 ----
@@ -134,12 +151,4 @@ $ ./dap tests/smalldiff tests/smalldiff
 ...
 ----
 
-Here is a very large directory example:
-----
-$ ./dap --report-only tests/samelarge/hostA tests/samelarge/hostB/
-Loading files from  tests/samelarge/hostA
-Done
-Loading files from  tests/samelarge/hostB/
-Done
-Scanned:        Files: 222220        Directories: 22222        Diffs: 0        Patched: 0        Skipped: 0        Errors: 0         Runtime: 4.554211126s
-----
+
