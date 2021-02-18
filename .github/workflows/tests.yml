@@ -30,6 +30,19 @@ jobs:
 
       - name: Coverage
         run: make coverage
+        env:
+          EXPORT_RESULT: true
+
+      - name: CodeCov
+      - uses: actions/checkout@master
+      - uses: codecov/codecov-action@v1
+        with:
+          #files: ./coverage.xml
+          flags: unittests # optional
+          name: codecov-umbrella # optional
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
+              run:
 
       - name: Upload
         uses: actions/upload-artifact@v2

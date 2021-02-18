@@ -21,7 +21,7 @@ lint-go:
 clean:
 	rm -fr ./bin
 	rm -fr ./out
-	rm -f ./junit-report.xml checkstyle-report.xml ./coverage.xml ./profile.cov yamllint-checkstyle.xml
+	rm -f ./junit-report.xml checkstyle-report.xml ./coverage.xml ./coverage.txt ./profile.cov yamllint-checkstyle.xml
 
 test:
 ifeq ($(EXPORT_RESULT), true)
@@ -31,7 +31,7 @@ endif
 	$(GOTEST) -v -race ./... $(OUTPUT_OPTIONS)
 
 coverage:
-	$(GOTEST) -cover -covermode=count -coverprofile=profile.cov ./...
+	$(GOTEST) -race -cover -covermode=atomic -coverprofile=profile.cov ./...
 	$(GOCMD) tool cover -func profile.cov
 ifeq ($(EXPORT_RESULT), true)
 	GO111MODULE=off go get -u github.com/AlekSi/gocov-xml
