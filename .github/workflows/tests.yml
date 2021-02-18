@@ -34,8 +34,7 @@ jobs:
           EXPORT_RESULT: true
 
       - name: CodeCov
-      - uses: actions/checkout@master
-      - uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v1
         with:
           #files: ./coverage.xml
           flags: unittests # optional
