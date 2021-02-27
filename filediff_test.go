@@ -144,45 +144,32 @@ func Test_reviewPatchDetailed(t *testing.T) {
 func Test_loadFileContent(t *testing.T) {
 
 	fileA := loadTestFile("testdata/same/a/t1.txt")
-	fileFake := loadTestFile("testdata/fakefile")
 
 	type args struct {
 		fileX *fileInfoExtended
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name string
+		args args
 	}{
-		{"RealFile", args{fileX: &fileA}, false},
-		{"FakeFile", args{fileX: &fileFake}, true},
+		{"RealFile", args{fileX: &fileA}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := loadFileContent(tt.args.fileX); (err != nil) != tt.wantErr {
-				t.Errorf("loadFileContent() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			loadFileContent(tt.args.fileX)
 		})
-	}
-}
-
-// loadFileContentHelper is a unit test helper to avoid the if err != nil pattern.
-func loadFileContentHelper(myFile *fileInfoExtended) {
-	err := loadFileContent(myFile)
-	if err != nil {
-		log.Fatal(err)
 	}
 }
 
 func Test_createDiffs(t *testing.T) {
 
 	fileA := loadTestFile("testdata/same/a/t1.txt")
-	loadFileContentHelper(&fileA)
+	loadFileContent(&fileA)
 	fileC := loadTestFile("testdata/smalldiff/t2.txt")
-	loadFileContentHelper(&fileC)
+	loadFileContent(&fileC)
 
 	fileSource := loadTestFile("testdata/smalldiff/t2.txt")
-	loadFileContentHelper(&fileSource)
+	loadFileContent(&fileSource)
 
 	tmpfile, err := ioutil.TempFile("", "example")
 	if err != nil {
@@ -196,7 +183,7 @@ func Test_createDiffs(t *testing.T) {
 	}
 
 	filePatch := loadTestFile(tmpfile.Name())
-	loadFileContentHelper(&filePatch)
+	loadFileContent(&filePatch)
 	filePatch.autoPatch = true
 	defer os.Remove(tmpfile.Name()) // clean up
 

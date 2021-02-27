@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strings"
 
 	"github.com/gookit/color"
@@ -38,16 +39,8 @@ func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun b
 	}
 
 	runtimeStats.FilesWDiff++
-	fileAErr := loadFileContent(&fileAExt)
-	fileBErr := loadFileContent(&fileBExt)
-
-	if fileAErr != nil {
-		return equal, fileAErr
-	}
-
-	if fileBErr != nil {
-		return equal, fileBErr
-	}
+	loadFileContent(&fileAExt)
+	loadFileContent(&fileBExt)
 
 	resultDiffInfo, err := createDiffs(fileAExt, fileBExt)
 	if err != nil {
@@ -76,16 +69,16 @@ func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun b
 	return equal, nil
 }
 
-func loadFileContent(fileX *fileInfoExtended) error {
+// The files have already be read by a quick compare utility
+// If we get an I/O error here we should just exit.
+func loadFileContent(fileX *fileInfoExtended) {
 	var err error
 	fileX.fileContent, err = ioutil.ReadFile(fileX.osPathname)
 	if err != nil {
-		logError("Reading file failed", err)
-		return err
+		log.Fatalf("Error reading file: %v, %v", fileX.osPathname, err)
 	}
 
 	fileX.fileContentString = string(fileX.fileContent)
-	return nil
 }
 
 func splitLines(s string) []string {
