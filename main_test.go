@@ -38,6 +38,11 @@ func Test_showFinishedResults(t *testing.T) {
 
 func Test_mainWork(t *testing.T) {
 
+	defer func() {
+		enableDebugLogs = false
+	}()
+
+	enableDebugLogs = true
 	fileA := loadTestFile("testdata/same/a/t1.txt")
 	fileB := loadTestFile("testdata/same/b/t1.txt")
 
