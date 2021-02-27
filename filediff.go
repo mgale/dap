@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strings"
 
 	"github.com/gookit/color"
@@ -12,6 +13,7 @@ import (
 	"github.com/udhos/equalfile"
 )
 
+// ErrorCanceled is returned when the user decideds to quit.
 var ErrorCanceled = fmt.Errorf("canceled by user")
 
 // compareFiles is the entry point for file comparison, diff reviews and apply patches
@@ -67,16 +69,16 @@ func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun b
 	return equal, nil
 }
 
-func loadFileContent(fileX *fileInfoExtended) error {
+// The files have already be read by a quick compare utility
+// If we get an I/O error here we should just exit.
+func loadFileContent(fileX *fileInfoExtended) {
 	var err error
 	fileX.fileContent, err = ioutil.ReadFile(fileX.osPathname)
 	if err != nil {
-		logError("Reading file failed", err)
-		return err
+		log.Fatalf("Error reading file: %v, %v", fileX.osPathname, err)
 	}
 
 	fileX.fileContentString = string(fileX.fileContent)
-	return nil
 }
 
 func splitLines(s string) []string {
@@ -88,6 +90,7 @@ func splitLines(s string) []string {
 	return lines
 }
 
+// LineByLineDiff Returns the diff to the end user with colour
 func LineByLineDiff(diffs []diffmatchpatch.Diff) string {
 	out := ""
 	for _, diff := range diffs {
@@ -134,7 +137,6 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 	}
 
 	fileContent, patchesTotal, patchesFailed, err := handlePatches(dmp, diffs, fileAExt)
-	// TODO: Handle error
 	patchesApplied := patchesTotal - patchesFailed
 
 	fileDiffInfo.patchesTotal = patchesTotal
@@ -146,6 +148,7 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 		fileDiffInfo.newContent = fileContent
 	}
 
+	logError("Error applying patching", err)
 	fmt.Printf("\nDiffs: %v, Patches: %v, Applied: %v, Failed: %v\n", len(diffs), patchesTotal, patchesApplied, patchesFailed)
 	return fileDiffInfo, nil
 }

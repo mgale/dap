@@ -144,24 +144,19 @@ func Test_reviewPatchDetailed(t *testing.T) {
 func Test_loadFileContent(t *testing.T) {
 
 	fileA := loadTestFile("testdata/same/a/t1.txt")
-	fileFake := loadTestFile("testdata/fakefile")
 
 	type args struct {
 		fileX *fileInfoExtended
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name string
+		args args
 	}{
-		{"RealFile", args{fileX: &fileA}, false},
-		{"FakeFile", args{fileX: &fileFake}, true},
+		{"RealFile", args{fileX: &fileA}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := loadFileContent(tt.args.fileX); (err != nil) != tt.wantErr {
-				t.Errorf("loadFileContent() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			loadFileContent(tt.args.fileX)
 		})
 	}
 }
@@ -183,6 +178,9 @@ func Test_createDiffs(t *testing.T) {
 
 	data, _ := ioutil.ReadFile("testdata/smalldiff/t1.txt")
 	err = ioutil.WriteFile(tmpfile.Name(), data, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	filePatch := loadTestFile(tmpfile.Name())
 	loadFileContent(&filePatch)
@@ -247,6 +245,9 @@ func Test_compareFiles(t *testing.T) {
 
 	data, _ := ioutil.ReadFile("testdata/smalldiff/t1.txt")
 	err = ioutil.WriteFile(tmpfile.Name(), data, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	filePatch := loadTestFile(tmpfile.Name())
 	filePatch.autoPatch = true
@@ -258,6 +259,9 @@ func Test_compareFiles(t *testing.T) {
 
 	data, _ = ioutil.ReadFile("testdata/smalldiff/t1.txt")
 	err = ioutil.WriteFile(tmpfile2.Name(), data, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	filePatch2 := loadTestFile(tmpfile2.Name())
 	filePatch2.autoPatch = true
