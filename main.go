@@ -16,7 +16,6 @@ import (
 
 const semVersion = "0.0.6"
 
-var diffContext int
 var ignorePaths []string
 var includeHidden bool = false
 var followSymLinks bool = false
@@ -92,7 +91,7 @@ func showFinishedResults(output *bufio.Writer, runtimeStats trackedStats) error 
 func getAllFiles(diffPath string) []fileInfoExtended {
 	foundFiles := []fileInfoExtended{}
 	fmt.Println("Loading files from ", diffPath)
-	godirwalk.Walk(diffPath, &godirwalk.Options{
+	walkErr := godirwalk.Walk(diffPath, &godirwalk.Options{
 		Unsorted: false,
 		Callback: func(osPathname string, de *godirwalk.Dirent) error {
 
@@ -137,6 +136,10 @@ func getAllFiles(diffPath string) []fileInfoExtended {
 			return godirwalk.SkipNode
 		},
 	})
+
+	if walkErr != nil {
+		logError("Error searching for file", walkErr)
+	}
 
 	return foundFiles
 }

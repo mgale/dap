@@ -166,15 +166,23 @@ func Test_loadFileContent(t *testing.T) {
 	}
 }
 
+// loadFileContentHelper is a unit test helper to avoid the if err != nil pattern.
+func loadFileContentHelper(myFile *fileInfoExtended) {
+	err := loadFileContent(myFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func Test_createDiffs(t *testing.T) {
 
 	fileA := loadTestFile("testdata/same/a/t1.txt")
-	loadFileContent(&fileA)
+	loadFileContentHelper(&fileA)
 	fileC := loadTestFile("testdata/smalldiff/t2.txt")
-	loadFileContent(&fileC)
+	loadFileContentHelper(&fileC)
 
 	fileSource := loadTestFile("testdata/smalldiff/t2.txt")
-	loadFileContent(&fileSource)
+	loadFileContentHelper(&fileSource)
 
 	tmpfile, err := ioutil.TempFile("", "example")
 	if err != nil {
@@ -183,9 +191,12 @@ func Test_createDiffs(t *testing.T) {
 
 	data, _ := ioutil.ReadFile("testdata/smalldiff/t1.txt")
 	err = ioutil.WriteFile(tmpfile.Name(), data, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	filePatch := loadTestFile(tmpfile.Name())
-	loadFileContent(&filePatch)
+	loadFileContentHelper(&filePatch)
 	filePatch.autoPatch = true
 	defer os.Remove(tmpfile.Name()) // clean up
 
@@ -247,6 +258,9 @@ func Test_compareFiles(t *testing.T) {
 
 	data, _ := ioutil.ReadFile("testdata/smalldiff/t1.txt")
 	err = ioutil.WriteFile(tmpfile.Name(), data, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	filePatch := loadTestFile(tmpfile.Name())
 	filePatch.autoPatch = true
@@ -258,6 +272,9 @@ func Test_compareFiles(t *testing.T) {
 
 	data, _ = ioutil.ReadFile("testdata/smalldiff/t1.txt")
 	err = ioutil.WriteFile(tmpfile2.Name(), data, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	filePatch2 := loadTestFile(tmpfile2.Name())
 	filePatch2.autoPatch = true

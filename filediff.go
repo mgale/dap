@@ -12,6 +12,7 @@ import (
 	"github.com/udhos/equalfile"
 )
 
+// ErrorCanceled is returned when the user decideds to quit.
 var ErrorCanceled = fmt.Errorf("canceled by user")
 
 // compareFiles is the entry point for file comparison, diff reviews and apply patches
@@ -37,8 +38,16 @@ func compareFiles(fileAExt fileInfoExtended, fileBExt fileInfoExtended, dryRun b
 	}
 
 	runtimeStats.FilesWDiff++
-	loadFileContent(&fileAExt)
-	loadFileContent(&fileBExt)
+	fileAErr := loadFileContent(&fileAExt)
+	fileBErr := loadFileContent(&fileBExt)
+
+	if fileAErr != nil {
+		return equal, fileAErr
+	}
+
+	if fileBErr != nil {
+		return equal, fileBErr
+	}
 
 	resultDiffInfo, err := createDiffs(fileAExt, fileBExt)
 	if err != nil {
@@ -88,6 +97,7 @@ func splitLines(s string) []string {
 	return lines
 }
 
+// LineByLineDiff Returns the diff to the end user with colour
 func LineByLineDiff(diffs []diffmatchpatch.Diff) string {
 	out := ""
 	for _, diff := range diffs {
@@ -134,7 +144,6 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 	}
 
 	fileContent, patchesTotal, patchesFailed, err := handlePatches(dmp, diffs, fileAExt)
-	// TODO: Handle error
 	patchesApplied := patchesTotal - patchesFailed
 
 	fileDiffInfo.patchesTotal = patchesTotal
@@ -146,6 +155,7 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 		fileDiffInfo.newContent = fileContent
 	}
 
+	logError("Error applying patching", err)
 	fmt.Printf("\nDiffs: %v, Patches: %v, Applied: %v, Failed: %v\n", len(diffs), patchesTotal, patchesApplied, patchesFailed)
 	return fileDiffInfo, nil
 }
