@@ -90,22 +90,43 @@ func splitLines(s string) []string {
 	return lines
 }
 
-// LineByLineDiff Returns the diff to the end user with colour
-func LineByLineDiff(diffs []diffmatchpatch.Diff) string {
+// ColorDiff Returns the diff to the end user with colour
+func ColorDiff(diffs []diffmatchpatch.Diff) string {
 	out := ""
-	for _, diff := range diffs {
-		lines := splitLines(diff.Text)
+	for i, diff := range diffs {
+		if i == 0 {
+			out += color.Style{color.Blue}.Sprint("---\n")
+		}
 		switch diff.Type {
 		case diffmatchpatch.DiffInsert:
-			for _, line := range lines {
-				out += color.Style{color.Green}.Sprintf("+ %s\n", line)
-			}
+			out += color.Style{color.Green}.Sprint(strings.ReplaceAll(diff.Text, "\t", "˲   "))
 		case diffmatchpatch.DiffDelete:
-			for _, line := range lines {
-				out += color.Style{color.Red}.Sprintf("- %s\n", line)
-			}
+			out += color.Style{color.Red}.Sprint(strings.ReplaceAll(diff.Text, "\t", "˲   "))
 		case diffmatchpatch.DiffEqual:
-			out += color.Style{color.Blue}.Sprint("---\n")
+			lines := splitLines(diff.Text)
+			if len(lines) > 0 &&
+				// Avoid just adding the beginning of the file as context if it is not close to the diff
+				!(i == 0 && len(lines) > 2) {
+
+				// TODO: Control the output of tab with an option
+				out += color.Style{color.White}.Sprint(strings.ReplaceAll(lines[0], "\t", "˲   "))
+				if len(lines) > 1 {
+					out += "\n"
+				}
+				if len(lines) > 2 {
+					out += color.Style{color.Blue}.Sprint("\n---\n")
+				}
+			}
+			if len(lines) > 1 &&
+				// Avoid just adding the end of the file as context if it is not close to the diff
+				!(i+1 == len(diffs) && len(lines) > 2) {
+
+				// TODO: Control the output of tab with an option
+				out += color.Style{color.White}.Sprint(strings.ReplaceAll(lines[len(lines)-1], "\t", "˲   "))
+				if strings.HasSuffix(diff.Text, "\n") {
+					out += "\n"
+				}
+			}
 		}
 	}
 	return out
@@ -127,7 +148,7 @@ func createDiffs(fileAExt fileInfoExtended, fileBExt fileInfoExtended) (fileDiff
 
 	fileDiffInfo.diffCount = len(diffs)
 	//review the diff with the user
-	lookAtPatches, err := reviewDiff(LineByLineDiff(diffs), fileAExt.osPathname, fileBExt.osPathname, fileAExt.autoPatch)
+	lookAtPatches, err := reviewDiff(ColorDiff(diffs), fileAExt.osPathname, fileBExt.osPathname, fileAExt.autoPatch)
 	if err != nil {
 		return fileDiffInfo, err
 	}
