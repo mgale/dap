@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/gookit/color"
@@ -92,6 +93,8 @@ func splitLines(s string) []string {
 
 // ColorDiff Returns the diff to the end user with colour
 func ColorDiff(diffs []diffmatchpatch.Diff) string {
+	r := regexp.MustCompile(`\s+(\r?\n)`)
+	rEnd := regexp.MustCompile(`\s+$`)
 	out := ""
 	for i, diff := range diffs {
 		if i == 0 {
@@ -99,9 +102,41 @@ func ColorDiff(diffs []diffmatchpatch.Diff) string {
 		}
 		switch diff.Type {
 		case diffmatchpatch.DiffInsert:
-			out += color.Style{color.Green}.Sprint(strings.ReplaceAll(diff.Text, "\t", "˲   "))
+			// out += color.Style{color.Green}.Sprint(strings.ReplaceAll(diff.Text, "\t", "˲   "))
+			if diff.Text == r.ReplaceAllString(diff.Text, "$1") {
+				out += color.Style{color.Green}.Sprint(strings.ReplaceAll(diff.Text, "\t", "˲   "))
+			} else {
+				lines := splitLines(diff.Text)
+				for i, line := range lines {
+					noSpaceLine := rEnd.ReplaceAllString(line, "")
+					out += color.Style{color.Green}.Sprint(strings.ReplaceAll(noSpaceLine, "\t", "˲   "))
+					out += color.Style{color.BgGreen}.Sprint(strings.Replace(line, noSpaceLine, "", 1))
+					if i+1 != len(lines) {
+						out += color.ClearCode("\n")
+					}
+				}
+				if strings.HasSuffix(diff.Text, "\n") {
+					out += color.ClearCode("\n")
+				}
+			}
 		case diffmatchpatch.DiffDelete:
-			out += color.Style{color.Red}.Sprint(strings.ReplaceAll(diff.Text, "\t", "˲   "))
+			// out += color.Style{color.Red}.Sprint(strings.ReplaceAll(diff.Text, "\t", "˲   "))
+			if diff.Text == r.ReplaceAllString(diff.Text, "$1") {
+				out += color.Style{color.Red}.Sprint(strings.ReplaceAll(diff.Text, "\t", "˲   "))
+			} else {
+				lines := splitLines(diff.Text)
+				for i, line := range lines {
+					noSpaceLine := rEnd.ReplaceAllString(line, "")
+					out += color.Style{color.Red}.Sprint(strings.ReplaceAll(noSpaceLine, "\t", "˲   "))
+					out += color.Style{color.BgRed}.Sprint(strings.Replace(line, noSpaceLine, "", 1))
+					if i+1 != len(lines) {
+						out += color.ClearCode("\n")
+					}
+				}
+				if strings.HasSuffix(diff.Text, "\n") {
+					out += color.ClearCode("\n")
+				}
+			}
 		case diffmatchpatch.DiffEqual:
 			lines := splitLines(diff.Text)
 			if len(lines) > 0 &&
