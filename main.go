@@ -14,7 +14,12 @@ import (
 	"github.com/karrick/godirwalk"
 )
 
-const semVersion = "0.0.6"
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+	builtBy = "unknown"
+)
 
 var ignorePaths []string
 var includeHidden bool = false
@@ -238,7 +243,7 @@ Example: ./dap original desired_changes`)
 		return 0
 	}
 	if opt.Called("version") {
-		fmt.Println(semVersion)
+		fmt.Printf("dap version %s, commit %s, built at %s by %s\n", version, commit, date, builtBy)
 		return 0
 	}
 
